@@ -38,7 +38,7 @@
 
 /*
 	TODO
-	Kupbol jovo feny és a kup belseje
+	Kupbol jovo feny
 	attehetoseg
 */
 
@@ -249,7 +249,7 @@ public:
 
 		La = vec3(0.2f, 0.2f, 0.2f);
 		vec3 lightDirection(-1, 0, 0), Le(0.5, 0, 0);
-		lights.push_back(new Light(lightDirection, vec3(0,0.8,0), Le));
+		//lights.push_back(new Light(lightDirection, vec3(0,0.8,0), Le));
 
 		//vec3 lightDirection1(-1, 0, 0), Le1(0, 0.5, 0);
 		//lights.push_back(new Light(lightDirection1, vec3(0, 0, 0), Le1));
@@ -273,8 +273,8 @@ public:
 		objects.push_back(new Sqare(d, c, g, h));
 		objects.push_back(new Sqare(a, b, f, e));
 
-		objects.push_back(new Sqare(a, d, h, e));
-		objects.push_back(new Sqare(a, b, c, d));
+		//objects.push_back(new Sqare(a, d, h, e));
+		//objects.push_back(new Sqare(a, b, c, d));
 
 
 
@@ -434,8 +434,15 @@ vec3(0+1,  0.525731-1,  0.850651+1)
 		return false;
 	}
 
+	bool shadowIntersect2(Ray ray, float length) {	// for directional lights
+		for (Intersectable* object : objects) if (object->intersect(ray).t > 0 && object->intersect(ray).t<length) {
+			return true;
+		}
+		return false;
+	}
+
 	vec3 trace(Ray ray, int depth = 0) {
-		Hit hit = secondIntersect(ray);
+		Hit hit = firstIntersect(ray);
 		if (hit.t < 0) return La;
 
 		float L = 0.2 * (1 + dot(-1*normalize(hit.normal), normalize(ray.dir)));
@@ -453,10 +460,11 @@ vec3(0+1,  0.525731-1,  0.850651+1)
 		}
 
 
-		Ray feny(vec3(0, 0, 0), vec3(0,1,0));
-		float cos = dot(hit.normal, feny.dir);
-		Ray shadowRay(hit.position + hit.normal * epsilon, feny.dir);
-		if (cos > 0 && !shadowIntersect(shadowRay)) {	// shadow computation
+		
+		Ray feny(vec3(0,0.9,0), -1*hit.position);
+		float cos = dot(hit.normal, feny.dir + feny.start);
+		Ray shadowRay2(hit.position + hit.normal * epsilon, feny.start-hit.position);
+		if (cos >0 && !shadowIntersect2(shadowRay2, length(feny.start - hit.position))) {	// shadow computation
 			outRadiance = outRadiance + vec3(0, 1, 0) * vec3(L, L, L);
 		}
 
