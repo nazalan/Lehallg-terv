@@ -38,7 +38,7 @@
 
 /*
 	TODO
-	Kupbol jovo feny
+	Kupbol jovo feny erossege
 	attehetoseg
 */
 
@@ -125,46 +125,70 @@ struct Triangle : public Intersectable {
 struct Cone : public Intersectable {
 	vec3 p;
 	vec3 n;
-	Cone(vec3 _p, vec3 _n) {
+	vec3 c;
+	Cone(vec3 _p, vec3 _n, vec3 _c) {
 		p = _p;
-		n = _n;
+		n = normalize(_n);
+		c = _c;
 	}
-	
+
 	Hit intersect(const Ray& ray) {
 		Hit hit;
 
+		float alpha = 0.4;
 		vec3 d = ray.dir;
 		vec3 s = ray.start;
-		float a = pow(dot(d,n),2)- dot(d, d) * pow(cos(0.3),2);
-		float b = 2 * dot(d, n) * dot(n, s) - 2 * dot(d, n) * dot(n, p) -2* pow(cos(0.3), 2)*( dot(d, s) - dot(d, p));
-		float c = pow(dot(s, n), 2) + pow(dot(p, n), 2) - 2 * (dot(s, p) * dot(n, n)) - pow(cos(0.3), 2) * (dot(s, s) + dot(p, p) - 2 * dot(s, p));
+		float a = pow(dot(ray.dir, n), 2) - dot(ray.dir, ray.dir) * pow(cos(alpha),2);
+		float b = dot(ray.dir, n) * dot(ray.start, n) - dot(ray.dir, n) * dot(p, n) + dot(ray.start, n) * dot(ray.dir, n) - dot(p, n) * dot(ray.dir, n)
+			- (dot(ray.dir, ray.start) - dot(ray.dir, p) + dot(ray.start, ray.dir) - dot(p, ray.dir)) * pow(cos(alpha), 2);
+		float c = pow(dot(ray.start, n), 2) - 2 * (dot(ray.start, n) * dot(p, n)) + pow(dot(p, n), 2)
+			- (dot(ray.start, ray.start) - 2 * (dot(ray.start, p)) + dot(p, p)) * pow(cos(alpha), 2);
+
+
 		float discr = b * b - 4.0f * a * c;
 		if (discr < 0) return hit;
 		float sqrt_discr = sqrtf(discr);
 		float t1 = (-b + sqrt_discr) / 2.0f / a;
 		float t2 = (-b - sqrt_discr) / 2.0f / a;
-		if (t1 <= 0 && t2<=0) return hit;
+		if (t1 <= 0 && t2 <= 0) return hit;
 
-		float kisebbt, nagyobbt;
-		if (t1 < t2) {
-			kisebbt = t1;
-			nagyobbt = t2;
-		}
-		else {
-			kisebbt = t2;
-			nagyobbt = t1;
-		}
 
-		if (dot(((ray.start + ray.dir * nagyobbt) - p), n) > 0 && dot(((ray.start + ray.dir * nagyobbt) - p), n) <0.4) {
-			hit.t = nagyobbt;
-			if (dot(((ray.start + ray.dir * kisebbt) - p), n) > 0 && dot(((ray.start + ray.dir * kisebbt) - p), n) < 0.4) {
-				hit.t = kisebbt;
+		vec3 p1 = ray.start + ray.dir * t1;
+		vec3 p2 = ray.start + ray.dir * t2;
+
+
+		if (dot((p1 - p), n) > 0 && dot((p1 - p), n) < 0.3
+			&& dot((p2 - p), n) > 0 && dot((p2 - p), n) < 0.3) {
+			float t= t1 < t2 ? t1 : t2;
+			if (abs(dot((ray.start + ray.dir * t - p) / length(ray.start + ray.dir * t - p), n) - cos(alpha)) < 0.1) {
+				hit.t = t;
+				hit.position = ray.start + ray.dir * hit.t;
+				hit.normal = normalize(2 * dot((hit.position - p), n) * n - 2 * (hit.position - p) * pow(cos(alpha), 2));
 			}
-			hit.position = ray.start + ray.dir * hit.t;
-			hit.normal = normalize(cross(cross(n, hit.position), hit.position));
 		}
+		else if ((dot((p1 - p), n) < 0 || dot((p1 - p), n) > 0.3)
+			&& (dot((p2 - p), n) < 0 || dot((p2 - p), n) > 0.3)) {
+		}
+		else if ((dot((p1 - p), n) > 0 && dot((p1 - p), n) < 0.3)
+			&& (dot((p2 - p), n) < 0 || dot((p2 - p), n) > 0.3)){
+			if (abs(dot((ray.start + ray.dir * t1 - p) / length(ray.start + ray.dir * t1 - p), n) - cos(alpha)) < 0.1) {
+				hit.t = t1;
+				hit.position = ray.start + ray.dir * hit.t;
+				hit.normal = normalize(2 * dot((hit.position - p), n) * n - 2 * (hit.position - p) * pow(cos(alpha), 2));
+			}
+		}
+		else if ((dot((p2 - p), n) > 0 && dot((p2 - p), n) < 0.3)
+			&& (dot((p1 - p), n) < 0 || dot((p1 - p), n) > 0.3)) {
+			if (abs(dot((ray.start + ray.dir * t2 - p) / length(ray.start + ray.dir * t2 - p), n) - cos(alpha)) < 0.1) {
+				hit.t = t2;
+				hit.position = ray.start + ray.dir * hit.t;
+				hit.normal = normalize(2 * dot((hit.position - p), n) * n - 2 * (hit.position - p) * pow(cos(alpha), 2));
+			}
+		}
+
 
 		return hit;
+		
 	}
 };
 
@@ -238,25 +262,16 @@ const float epsilon = 0.0001f;
 class Scene {
 	std::vector<Intersectable*> objects;
 	std::vector<Light*> lights;
+	std::vector<Cone*> cones;
 	Camera camera;
 	vec3 La = vec3(0, 0, 0);
 public:
 	void build() {
 		vec3 eye = vec3(-2, 0, 3), vup = vec3(0, 1, 0), lookat = vec3(0, 0, 0);
-		//vec3 eye = vec3(0, 0, 3), vup = vec3(0, 1, 0), lookat = vec3(0, 0, 0);
+		//vec3 eye = vec3(0, 0, 0), vup = vec3(0, 1, 0), lookat = vec3(0, 1, 0);
 		float fov = 45 * M_PI / 180;
 		camera.set(eye, lookat, vup, fov);
 
-		La = vec3(0.2f, 0.2f, 0.2f);
-		vec3 lightDirection(-1, 0, 0), Le(0.5, 0, 0);
-		//lights.push_back(new Light(lightDirection, vec3(0,0.8,0), Le));
-
-		//vec3 lightDirection1(-1, 0, 0), Le1(0, 0.5, 0);
-		//lights.push_back(new Light(lightDirection1, vec3(0, 0, 0), Le1));
-
-		
-		vec3 kd(0.3f, 0.2f, 0.1f), ks(2, 2, 2);
-		Material* material = new Material(kd, ks, 50);
 
 		//szoba sarkai
 		vec3 a = vec3(-1, -1, 1);
@@ -267,14 +282,15 @@ public:
 		vec3 f = vec3(1, -1, -1);
 		vec3 g = vec3(1, 1, -1);
 		vec3 h = vec3(-1, 1, -1);
-		//négy fala a szobának, ami látszik
+
+		//szoba falai
 		objects.push_back(new Sqare(e, f, g, h));
 		objects.push_back(new Sqare(b, f, g, c));
 		objects.push_back(new Sqare(d, c, g, h));
 		objects.push_back(new Sqare(a, b, f, e));
 
-		//objects.push_back(new Sqare(a, d, h, e));
-		//objects.push_back(new Sqare(a, b, c, d));
+		objects.push_back(new Sqare(a, d, h, e));
+		objects.push_back(new Sqare(a, b, c, d));
 
 
 
@@ -388,10 +404,22 @@ vec3(0+1,  0.525731-1,  0.850651+1)
 			objects.push_back(new Triangle(dodecahedron[dodecahedron_order[3 * i] - 1] * 0.5, dodecahedron[dodecahedron_order[3 * i + 1] - 1] * 0.5, dodecahedron[dodecahedron_order[3 * i + 2] - 1] * 0.5));
 		}
 
+		//red
+		Cone* red = new Cone(vec3(0, 1, 0.0f), vec3(0, -1,0), vec3(3, 0, 0));
+		objects.push_back(red);
+		cones.push_back(red);
 
-		objects.push_back(new Cone(vec3(0, 1.0f, 0.0f), vec3(0, -1, 0)));
+		//green
+		Cone* green = new Cone(vec3(0.5, 1, 1), vec3(0, -1, -1), vec3(0, 3, 0));
+		objects.push_back(green);
+		cones.push_back(green);
 
-		objects.push_back(new Sphere(vec3(0, 0, 0.8f), 0.2f, material));
+		//blue
+		Cone* blue = new Cone(vec3(0, 0.8, -1), vec3(0, 0, 1), vec3(0, 0, 3));
+		objects.push_back(blue);
+		cones.push_back(blue);
+
+
 
 	}
 
@@ -442,30 +470,19 @@ vec3(0+1,  0.525731-1,  0.850651+1)
 	}
 
 	vec3 trace(Ray ray, int depth = 0) {
-		Hit hit = firstIntersect(ray);
+		Hit hit = secondIntersect(ray);
 		if (hit.t < 0) return La;
 
 		float L = 0.2 * (1 + dot(-1*normalize(hit.normal), normalize(ray.dir)));
 		vec3 outRadiance =  vec3(L,L,L);
 
-		for (Light* light : lights) {
-			Ray shadowRay(hit.position + hit.normal * epsilon, light->direction);
-			float cosTheta = dot(hit.normal, light->direction );
-			if (cosTheta > 0 && !shadowIntersect(shadowRay)) {	// shadow computation
-				outRadiance = outRadiance + light->Le * vec3(L, L, L) * cosTheta;
-				vec3 halfway = normalize(-ray.dir + light->direction );
-				float cosDelta = dot(hit.normal, halfway);
-				if (cosDelta > 0) outRadiance = outRadiance + light->Le * vec3(L, L, L);
+		for (Cone* cone : cones) {
+			Ray feny(vec3(cone->p.x + cone->n.x * 100 * epsilon, cone->p.y + cone->n.y * 100 * epsilon, cone->p.z + cone->n.z * 100 * epsilon), normalize( - 1 * hit.position));
+			float cos = dot(normalize(hit.normal), normalize(feny.dir + feny.start));
+			Ray shadowRay2(hit.position + hit.normal * epsilon, normalize(feny.start - hit.position));
+			if (cos > 0 && !shadowIntersect2(shadowRay2, length(feny.start - hit.position))) {	// shadow computation
+				outRadiance = outRadiance + cone->c * (pow((1 / length(feny.start - hit.position)), 1)) * vec3(L, L, L);
 			}
-		}
-
-
-		
-		Ray feny(vec3(0,0.9,0), -1*hit.position);
-		float cos = dot(hit.normal, feny.dir + feny.start);
-		Ray shadowRay2(hit.position + hit.normal * epsilon, feny.start-hit.position);
-		if (cos >0 && !shadowIntersect2(shadowRay2, length(feny.start - hit.position))) {	// shadow computation
-			outRadiance = outRadiance + vec3(0, 1, 0) * vec3(L, L, L);
 		}
 
 		return outRadiance;
