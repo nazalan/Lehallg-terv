@@ -38,8 +38,8 @@
 
 /*
 	TODO
-	Kupbol jovo feny erossege
 	attehetoseg
+	belseje vilagitson
 */
 
 struct Material {
@@ -240,8 +240,11 @@ public:
 		vec3 dir = lookat + right * (2.0f * (X + 0.5f) / windowWidth - 1) + up * (2.0f * (Y + 0.5f) / windowHeight - 1) - eye;
 		return Ray(eye, dir);
 	}
-	vec3 getEye() {
-		return eye;
+
+	void Animate(float dt) {
+		vec3 d = eye - lookat;
+		eye = vec3(d.x * cos(dt) + d.z * sin(dt), d.y, -d.x * sin(dt) + d.z * cos(dt)) + lookat;
+		set(eye, lookat, up, fov);
 	}
 };
 
@@ -405,17 +408,17 @@ vec3(0+1,  0.525731-1,  0.850651+1)
 		}
 
 		//red
-		Cone* red = new Cone(vec3(0, 1, 0.0f), vec3(0, -1,0), vec3(3, 0, 0));
+		Cone* red = new Cone(vec3(0, 1, 0.0f), vec3(0, -1,0), vec3(5, 0, 0));
 		objects.push_back(red);
 		cones.push_back(red);
 
 		//green
-		Cone* green = new Cone(vec3(0.5, 1, 1), vec3(0, -1, -1), vec3(0, 3, 0));
+		Cone* green = new Cone(vec3(0.5, 1, 1), vec3(0, -1, -1), vec3(0, 5, 0));
 		objects.push_back(green);
 		cones.push_back(green);
 
 		//blue
-		Cone* blue = new Cone(vec3(0, 0.8, -1), vec3(0, 0, 1), vec3(0, 0, 3));
+		Cone* blue = new Cone(vec3(0, 0.8, -1), vec3(0, 0, 1), vec3(0, 0, 5));
 		objects.push_back(blue);
 		cones.push_back(blue);
 
@@ -424,6 +427,8 @@ vec3(0+1,  0.525731-1,  0.850651+1)
 	}
 
 	void render(std::vector<vec4>& image) {
+		long timeStart = glutGet(GLUT_ELAPSED_TIME);
+
 		for (int Y = 0; Y < windowHeight; Y++) {
 #pragma omp parallel for
 			for (int X = 0; X < windowWidth; X++) {
@@ -431,6 +436,8 @@ vec3(0+1,  0.525731-1,  0.850651+1)
 				image[Y * windowWidth + X] = vec4(color.x, color.y, color.z, 1);
 			}
 		}
+
+		printf("Renderig time: %d milisecounds\n", glutGet(GLUT_ELAPSED_TIME) - timeStart);
 	}
 
 	Hit firstIntersect(Ray ray) {
@@ -481,11 +488,16 @@ vec3(0+1,  0.525731-1,  0.850651+1)
 			float cos = dot(normalize(hit.normal), normalize(feny.dir + feny.start));
 			Ray shadowRay2(hit.position + hit.normal * epsilon, normalize(feny.start - hit.position));
 			if (cos > 0 && !shadowIntersect2(shadowRay2, length(feny.start - hit.position))) {	// shadow computation
-				outRadiance = outRadiance + cone->c * (pow((1 / length(feny.start - hit.position)), 1)) * vec3(L, L, L);
+				outRadiance = outRadiance + cone->c * (pow((1 / length(feny.start - hit.position)), 2)) * vec3(L, L, L);
 			}
+
 		}
 
 		return outRadiance;
+	}
+
+	void Animate(float dt) {
+		camera.Animate(dt);
 	}
 };
 
@@ -521,11 +533,13 @@ const char* fragmentSource = R"(
 )";
 
 class FullScreenTexturedQuad {
-	unsigned int vao;	// vertex array object id and texture id
+	unsigned int vao=0, textureID=0;	// vertex array object id and texture id
 	Texture texture;
 public:
-	FullScreenTexturedQuad(int windowWidth, int windowHeight, std::vector<vec4>& image)
+	/*FullScreenTexturedQuad(int windowWidth, int windowHeight, std::vector<vec4>& image)
 		: texture(windowWidth, windowHeight, image)
+	{*/
+		FullScreenTexturedQuad(int windowWidth, int windowHeight)
 	{
 		glGenVertexArrays(1, &vao);	// create 1 vertex array object
 		glBindVertexArray(vao);		// make it active
@@ -539,11 +553,28 @@ public:
 		glBufferData(GL_ARRAY_BUFFER, sizeof(vertexCoords), vertexCoords, GL_STATIC_DRAW);	   // copy to that part of the memory which is not modified 
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);     // stride and offset: it is tightly packed
+
+		glGenTextures(1, &textureID);
+		glBindTexture(GL_TEXTURE_2D, textureID);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	}
+
+	void LoadTexture(std::vector<vec4> &image) {
+		glBindTexture(GL_TEXTURE_2D, textureID);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, windowWidth, windowHeight, 0, GL_RGBA, GL_FLOAT, &image[0]);
 	}
 
 	void Draw() {
 		glBindVertexArray(vao);	// make the vao and its vbos active playing the role of the data source
-		gpuProgram.setUniform(texture, "textureUnit");
+		int location= glGetUniformLocation(gpuProgram.getId(), "textureUnit");
+		//gpuProgram.setUniform(texture, "textureUnit")
+		const unsigned int textureUnit = 0;
+		if (location >= 0) {
+			glUniform1i(location, textureUnit);
+			glActiveTexture(GL_TEXTURE0 + textureUnit);
+			glBindTexture(GL_TEXTURE_2D, textureID);
+		}
 		glDrawArrays(GL_TRIANGLE_FAN, 0, 4);	// draw two triangles forming a quad
 	}
 };
@@ -555,11 +586,12 @@ void onInitialization() {
 	glViewport(0, 0, windowWidth, windowHeight);
 	scene.build();
 
-	std::vector<vec4> image(windowWidth * windowHeight);
-	scene.render(image);
+	//std::vector<vec4> image(windowWidth * windowHeight);
+	//scene.render(image);
 
 	// copy image to GPU as a texture
-	fullScreenTexturedQuad = new FullScreenTexturedQuad(windowWidth, windowHeight, image);
+	//fullScreenTexturedQuad = new FullScreenTexturedQuad(windowWidth, windowHeight, image);
+	fullScreenTexturedQuad = new FullScreenTexturedQuad(windowWidth, windowHeight);
 
 	// create program for the GPU
 	gpuProgram.create(vertexSource, fragmentSource, "fragmentColor");
@@ -567,6 +599,10 @@ void onInitialization() {
 
 // Window has become invalid: Redraw
 void onDisplay() {
+	//fullScreenTexturedQuad->Draw();
+	std::vector<vec4> image(windowWidth * windowHeight);
+	scene.render(image);
+	fullScreenTexturedQuad->LoadTexture(image);
 	fullScreenTexturedQuad->Draw();
 	glutSwapBuffers();									// exchange the two buffers
 }
@@ -590,6 +626,8 @@ void onMouseMotion(int pX, int pY) {
 
 // Idle event indicating that some time elapsed: do animation here
 void onIdle() {
+	scene.Animate(0.2f);
+	glutPostRedisplay();
 }
 
 
