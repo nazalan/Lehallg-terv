@@ -453,7 +453,6 @@ public:
 			if (cos > 0 && !shadowIntersect2(shadowRay2, length(feny.start - hit.position))) {	// shadow computation
 				outRadiance = outRadiance + cone->c * (pow((1 / length(feny.start - hit.position)), 2)) * vec3(L, L, L);
 			}
-
 		}
 		return outRadiance;
 	}
@@ -596,7 +595,6 @@ void onKeyboardUp(unsigned char key, int pX, int pY) {
 void onMouse(int button, int state, int pX, int pY) {
 
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-		printf("pressed");
 		scene.atrak(pX, pY);
 	}
 
