@@ -36,11 +36,107 @@
 //=============================================================================================
 #include "framework.h"
 
-/*
-	TODO
-	attehetoseg
-	belseje vilagitson
-*/
+//alakzatok adatai
+vec3 icosahedron[12] = {
+vec3(0 + 1, -0.525731 - 1,  0.850651 + 1),
+vec3(0.850651 + 1,  0 - 1,  0.525731 + 1),
+vec3(0.850651 + 1,  0 - 1, -0.525731 + 1),
+vec3(-0.850651 + 1,  0 - 1, -0.525731 + 1),
+vec3(-0.850651 + 1,  0 - 1,  0.525731 + 1),
+vec3(-0.525731 + 1,  0.850651 - 1,  0 + 1),
+vec3(0.525731 + 1,  0.850651 - 1,  0 + 1),
+vec3(0.525731 + 1, -0.850651 - 1,  0 + 1),
+vec3(-0.525731 + 1, -0.850651 - 1,  0 + 1),
+vec3(0 + 1, -0.525731 - 1, -0.850651 + 1),
+vec3(0 + 1,  0.525731 - 1, -0.850651 + 1),
+vec3(0 + 1,  0.525731 - 1,  0.850651 + 1)
+};
+
+int icosahedron_order[60] = {
+2,  3,  7,
+2,  8,  3,
+4,  5,  6,
+5,  4,  9,
+7,  6,  12,
+6,  7,  11,
+10,  11,  3,
+11,  10,  4,
+8,  9,  10,
+9,  8,  1,
+12,  1,  2,
+1,  12,  5,
+7,  3,  11,
+2,  7,  12,
+4,  6,  11,
+6,  5,  12,
+3,  8,  10,
+8,  2,  1,
+4,  10,  9,
+5,  9,  1
+};
+
+vec3 dodecahedron[20] = {
+vec3(-0.57735 - 0.5, -0.57735 - 1, 0.57735),
+vec3(0.934172 - 0.5, 0.356822 - 1, 0),
+vec3(0.934172 - 0.5, -0.356822 - 1, 0),
+vec3(-0.934172 - 0.5, 0.356822 - 1, 0),
+vec3(-0.934172 - 0.5, -0.356822 - 1, 0),
+vec3(0 - 0.5, 0.934172 - 1, 0.356822),
+vec3(0 - 0.5, 0.934172 - 1, -0.356822),
+vec3(0.356822 - 0.5, 0 - 1, -0.934172),
+vec3(-0.356822 - 0.5, 0 - 1, -0.934172),
+vec3(0 - 0.5, -0.934172 - 1, -0.356822),
+vec3(0 - 0.5, -0.934172 - 1, 0.356822),
+vec3(0.356822 - 0.5, 0 - 1, 0.934172),
+vec3(-0.356822 - 0.5, 0 - 1, 0.934172),
+vec3(0.57735 - 0.5, 0.57735 - 1, -0.57735),
+vec3(0.57735 - 0.5, 0.57735 - 1, 0.57735),
+vec3(-0.57735 - 0.5, 0.57735 - 1, -0.57735),
+vec3(-0.57735 - 0.5, 0.57735 - 1, 0.57735),
+vec3(0.57735 - 0.5, -0.57735 - 1, -0.57735),
+vec3(0.57735 - 0.5, -0.57735 - 1, 0.57735),
+vec3(-0.57735 - 0.5, -0.57735 - 1, -0.57735)
+};
+
+int dodecahedron_order[108] = {
+19, 3, 2,
+12, 19, 2,
+15, 12, 2,
+8, 14, 2,
+18, 8, 2,
+3, 18, 2,
+20, 5, 4,
+9, 20, 4,
+16, 9, 4,
+13, 17, 4,
+1, 13, 4,
+5, 1, 4,
+7, 16, 4,
+6, 7, 4,
+17, 6, 4,
+6, 15, 2,
+7, 6, 2,
+14, 7, 2,
+10, 18, 3,
+11, 10, 3,
+19, 11, 3,
+11, 1, 5,
+10, 11, 5,
+20, 10, 5,
+20, 9, 8,
+10, 20, 8,
+18, 10, 8,
+9, 16, 7,
+8, 9, 7,
+14, 8, 7,
+12, 15, 6,
+13, 12, 6,
+17, 13, 6,
+13, 1, 11,
+12, 13, 11,
+19, 12, 11
+};
+
 
 struct Material {
 	vec3 ka, kd, ks;
@@ -144,7 +240,6 @@ struct Cone : public Intersectable {
 		float c = pow(dot(ray.start, n), 2) - 2 * (dot(ray.start, n) * dot(p, n)) + pow(dot(p, n), 2)
 			- (dot(ray.start, ray.start) - 2 * (dot(ray.start, p)) + dot(p, p)) * pow(cos(alpha), 2);
 
-
 		float discr = b * b - 4.0f * a * c;
 		if (discr < 0) return hit;
 		float sqrt_discr = sqrtf(discr);
@@ -155,7 +250,6 @@ struct Cone : public Intersectable {
 
 		vec3 p1 = ray.start + ray.dir * t1;
 		vec3 p2 = ray.start + ray.dir * t2;
-
 
 		if (dot((p1 - p), n) > 0 && dot((p1 - p), n) < 0.3
 			&& dot((p2 - p), n) > 0 && dot((p2 - p), n) < 0.3) {
@@ -185,43 +279,10 @@ struct Cone : public Intersectable {
 				hit.normal = normalize(2 * dot((hit.position - p), n) * n - 2 * (hit.position - p) * pow(cos(alpha), 2));
 			}
 		}
-
-
 		return hit;
 		
 	}
 };
-
-struct Sphere : public Intersectable {
-	vec3 center;
-	float radius;
-
-	Sphere(const vec3& _center, float _radius, Material* _material) {
-		center = _center;
-		radius = _radius;
-		material = _material;
-	}
-
-	Hit intersect(const Ray& ray) {
-		Hit hit;
-		vec3 dist = ray.start - center;
-		float a = dot(ray.dir, ray.dir);
-		float b = dot(dist, ray.dir) * 2.0f;
-		float c = dot(dist, dist) - radius * radius;
-		float discr = b * b - 4.0f * a * c;
-		if (discr < 0) return hit;
-		float sqrt_discr = sqrtf(discr);
-		float t1 = (-b + sqrt_discr) / 2.0f / a;	// t1 >= t2 for sure
-		float t2 = (-b - sqrt_discr) / 2.0f / a;
-		if (t1 <= 0) return hit;
-		hit.t = (t2 > 0) ? t2 : t1;
-		hit.position = ray.start + ray.dir * hit.t;
-		hit.normal = (hit.position - center) * (1.0f / radius);
-		hit.material = material;
-		return hit;
-	}
-};
-
 
 class Camera {
 	vec3 eye, lookat, right, up;
@@ -248,33 +309,40 @@ public:
 	}
 };
 
-struct Light {
-	vec3 direction, position;
-	vec3 Le;
-	Light(vec3 _direction,vec3 _position , vec3 _Le) {
-		direction = normalize(_direction);
-		position = _position;
-		Le = _Le;
-	}
-};
-
-float rnd() { return (float)rand() / RAND_MAX; }
-
 const float epsilon = 0.0001f;
+
+//egy ponthoz a legkozelebbi kivalasztasa masik 3 pontbol
+int minimum(vec3 p, vec3 a, vec3 b, vec3 c) {
+	float minimum = length(a-p);
+	int idx = 2;
+	if (minimum > length(b - p)) {
+		minimum = length(b - p);
+		idx = 1;
+	}
+	if (minimum > length(c - p)) {
+		minimum = length(c - p);
+		idx = 0;
+	}
+	return idx;
+}
+
+//tetszoleges indexu elem torlese a gyujtemenybol
+template <typename T>
+void remove(std::vector<T>& v, size_t index) {
+	v.erase(v.begin() + index);
+}
+
 
 class Scene {
 	std::vector<Intersectable*> objects;
-	std::vector<Light*> lights;
 	std::vector<Cone*> cones;
 	Camera camera;
 	vec3 La = vec3(0, 0, 0);
 public:
 	void build() {
 		vec3 eye = vec3(-2, 0, 3), vup = vec3(0, 1, 0), lookat = vec3(0, 0, 0);
-		//vec3 eye = vec3(0, 0, 0), vup = vec3(0, 1, 0), lookat = vec3(0, 1, 0);
 		float fov = 45 * M_PI / 180;
 		camera.set(eye, lookat, vup, fov);
-
 
 		//szoba sarkai
 		vec3 a = vec3(-1, -1, 1);
@@ -296,107 +364,6 @@ public:
 		objects.push_back(new Sqare(a, b, c, d));
 
 
-
-		vec3 icosahedron[12] = {
-vec3(0+1, -0.525731-1,  0.850651+1),
-vec3(0.850651+1,  0-1,  0.525731+1),
-vec3(0.850651+1,  0-1, -0.525731+1),
-vec3(-0.850651+1,  0-1, -0.525731+1),
-vec3(-0.850651+1,  0-1,  0.525731+1),
-vec3(-0.525731+1,  0.850651-1,  0+1),
-vec3(0.525731+1,  0.850651-1,  0+1),
-vec3(0.525731+1, -0.850651-1,  0+1),
-vec3(-0.525731+1, -0.850651-1,  0+1),
-vec3(0+1, -0.525731-1, -0.850651+1),
-vec3(0+1,  0.525731-1, -0.850651+1),
-vec3(0+1,  0.525731-1,  0.850651+1)
-	};
-
-		int icosahedron_order[60] = {
-	2,  3,  7,
-	2,  8,  3,
-	4,  5,  6,
-	5,  4,  9,
-	7,  6,  12,
-	6,  7,  11,
-	10,  11,  3,
-	11,  10,  4,
-	8,  9,  10,
-	9,  8,  1,
-	12,  1,  2,
-	1,  12,  5,
-	7,  3,  11,
-	2,  7,  12,
-	4,  6,  11,
-	6,  5,  12,
-	3,  8,  10,
-	8,  2,  1,
-	4,  10,  9,
-	5,  9,  1
-	};
-
-		vec3 dodecahedron[20] = {
-	vec3(-0.57735-0.5, -0.57735-1, 0.57735),
-	vec3(0.934172- 0.5, 0.356822-1, 0),
-	vec3(0.934172- 0.5, -0.356822-1, 0),
-	vec3(-0.934172- 0.5, 0.356822-1, 0),
-	vec3(-0.934172- 0.5, -0.356822-1, 0),
-	vec3(0- 0.5, 0.934172-1, 0.356822),
-	vec3(0- 0.5, 0.934172-1, -0.356822),
-	vec3(0.356822- 0.5, 0-1, -0.934172),
-	vec3(-0.356822- 0.5, 0-1, -0.934172),
-	vec3(0- 0.5, -0.934172-1, -0.356822),
-	vec3(0- 0.5, -0.934172-1, 0.356822),
-	vec3(0.356822- 0.5, 0-1, 0.934172),
-	vec3(-0.356822- 0.5, 0-1, 0.934172),
-	vec3(0.57735- 0.5, 0.57735-1, -0.57735),
-	vec3(0.57735- 0.5, 0.57735-1, 0.57735),
-	vec3(-0.57735- 0.5, 0.57735-1, -0.57735),
-	vec3(-0.57735-0.5, 0.57735-1, 0.57735),
-	vec3(0.57735- 0.5, -0.57735-1, -0.57735),
-	vec3(0.57735- 0.5, -0.57735-1, 0.57735),
-	vec3(-0.57735- 0.5, -0.57735-1, -0.57735)
-	};
-
-		int dodecahedron_order[108] = {
-		19, 3, 2,
-		12, 19, 2,
-		15, 12, 2,
-		8, 14, 2,
-		18, 8, 2,
-		3, 18, 2,
-		20, 5, 4,
-		9, 20, 4,
-		16, 9, 4,
-		13, 17, 4,
-		1, 13, 4,
-		5, 1, 4,
-		7, 16, 4,
-		6, 7, 4,
-		17, 6, 4,
-		6, 15, 2,
-		7, 6, 2,
-		14, 7, 2,
-		10, 18, 3,
-		11, 10, 3,
-		19, 11, 3,
-		11, 1, 5,
-		10, 11, 5,
-		20, 10, 5,
-		20, 9, 8,
-		10, 20, 8,
-		18, 10, 8,
-		9, 16, 7,
-		8, 9, 7,
-		14, 8, 7,
-		12, 15, 6,
-		13, 12, 6,
-		17, 13, 6,
-		13, 1, 11,
-		12, 13, 11,
-		19, 12, 11
-	};
-
 		//icosahedron
 		for (int i = 0; i < 20; i++) {
 			objects.push_back(new Triangle(icosahedron[icosahedron_order[3*i]-1]*0.5, icosahedron[icosahedron_order[3*i+1]-1]*0.5, icosahedron[icosahedron_order[3*i+2]-1]*0.5));
@@ -413,22 +380,17 @@ vec3(0+1,  0.525731-1,  0.850651+1)
 		cones.push_back(red);
 
 		//green
-		Cone* green = new Cone(vec3(0.5, 1, 1), vec3(0, -1, -1), vec3(0, 5, 0));
+		Cone* green = new Cone(vec3(0.5, 1, 1), vec3(0, -1.5, -1), vec3(0, 5, 0));
 		objects.push_back(green);
 		cones.push_back(green);
 
 		//blue
-		Cone* blue = new Cone(vec3(0, 0.8, -1), vec3(0, 0, 1), vec3(0, 0, 5));
+		Cone* blue = new Cone(vec3(0, 0, -1), vec3(0, 0, 1), vec3(0, 0, 5));
 		objects.push_back(blue);
 		cones.push_back(blue);
-
-
-
 	}
 
 	void render(std::vector<vec4>& image) {
-		long timeStart = glutGet(GLUT_ELAPSED_TIME);
-
 		for (int Y = 0; Y < windowHeight; Y++) {
 #pragma omp parallel for
 			for (int X = 0; X < windowWidth; X++) {
@@ -436,8 +398,6 @@ vec3(0+1,  0.525731-1,  0.850651+1)
 				image[Y * windowWidth + X] = vec4(color.x, color.y, color.z, 1);
 			}
 		}
-
-		printf("Renderig time: %d milisecounds\n", glutGet(GLUT_ELAPSED_TIME) - timeStart);
 	}
 
 	Hit firstIntersect(Ray ray) {
@@ -450,6 +410,7 @@ vec3(0+1,  0.525731-1,  0.850651+1)
 		return bestHit;
 	}
 
+	//atlatszosag miatt
 	Hit secondIntersect(Ray ray) {
 		Hit bestHit= firstIntersect(ray);
 
@@ -469,6 +430,7 @@ vec3(0+1,  0.525731-1,  0.850651+1)
 		return false;
 	}
 
+	//a fenyek arnyekai
 	bool shadowIntersect2(Ray ray, float length) {	// for directional lights
 		for (Intersectable* object : objects) if (object->intersect(ray).t > 0 && object->intersect(ray).t<length) {
 			return true;
@@ -483,8 +445,9 @@ vec3(0+1,  0.525731-1,  0.850651+1)
 		float L = 0.2 * (1 + dot(-1*normalize(hit.normal), normalize(ray.dir)));
 		vec3 outRadiance =  vec3(L,L,L);
 
+		//vegigiteral a fényeken
 		for (Cone* cone : cones) {
-			Ray feny(vec3(cone->p.x + cone->n.x * 100 * epsilon, cone->p.y + cone->n.y * 100 * epsilon, cone->p.z + cone->n.z * 100 * epsilon), normalize( - 1 * hit.position));
+			Ray feny(cone->p+cone->n*100*epsilon, normalize( - 1 * hit.position));
 			float cos = dot(normalize(hit.normal), normalize(feny.dir + feny.start));
 			Ray shadowRay2(hit.position + hit.normal * epsilon, normalize(feny.start - hit.position));
 			if (cos > 0 && !shadowIntersect2(shadowRay2, length(feny.start - hit.position))) {	// shadow computation
@@ -492,12 +455,29 @@ vec3(0+1,  0.525731-1,  0.850651+1)
 			}
 
 		}
-
 		return outRadiance;
 	}
 
 	void Animate(float dt) {
 		camera.Animate(dt);
+	}
+
+	void atrak(int Px, int Py) {
+		float x = float(Px) / windowWidth;
+		float y = float(Py) / windowHeight;
+		Ray ray = camera.getRay(Px, windowHeight-Py);
+		Hit hit = secondIntersect(ray);
+
+		int idx = minimum(hit.position, cones[0]->p, cones[1]->p, cones[2]->p); //legkozelebbi feny es kup
+		
+		vec3 color=cones[2-idx]->c; //torles elott szinenek az eltarolasa
+		remove(cones, 2-idx);
+		remove(objects, (objects.size()-1)-idx);
+
+		Cone* newCone = new Cone(hit.position, hit.normal, color); //uj letrehozasa
+		objects.push_back(newCone);
+		cones.push_back(newCone);
+
 	}
 };
 
@@ -586,11 +566,7 @@ void onInitialization() {
 	glViewport(0, 0, windowWidth, windowHeight);
 	scene.build();
 
-	//std::vector<vec4> image(windowWidth * windowHeight);
-	//scene.render(image);
-
 	// copy image to GPU as a texture
-	//fullScreenTexturedQuad = new FullScreenTexturedQuad(windowWidth, windowHeight, image);
 	fullScreenTexturedQuad = new FullScreenTexturedQuad(windowWidth, windowHeight);
 
 	// create program for the GPU
@@ -618,6 +594,13 @@ void onKeyboardUp(unsigned char key, int pX, int pY) {
 
 // Mouse click event
 void onMouse(int button, int state, int pX, int pY) {
+
+	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+		printf("pressed");
+		scene.atrak(pX, pY);
+	}
+
+	glutPostRedisplay();
 }
 
 // Move mouse with key pressed
